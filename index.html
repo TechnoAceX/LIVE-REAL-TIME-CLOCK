@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Real-Time Date & Time | Live Clock</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, 'Inter', -apple-system, 'Roboto', sans-serif;
+            background: linear-gradient(145deg, #0f172a 0%, #1e293b 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            padding: 1.5rem;
+        }
+
+        /* Animated background effect */
+        body::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 20% 50%, rgba(56, 189, 248, 0.08) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        body::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 80% 80%, rgba(168, 85, 247, 0.06) 0%, transparent 60%);
+            pointer-events: none;
+        }
+
+        /* Main card container */
+        .datetime-card {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(20px);
+            border-radius: 3rem;
+            padding: 2.5rem 2rem;
+            box-shadow: 0 25px 45px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.08);
+            text-align: center;
+            max-width: 650px;
+            width: 100%;
+            transition: transform 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .datetime-card:hover {
+            transform: scale(1.01);
+            box-shadow: 0 30px 55px -15px rgba(0, 0, 0, 0.6);
+        }
+
+        /* Header */
+        .greeting {
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            margin-bottom: 1rem;
+        }
+
+        /* Date section */
+        .date-box {
+            margin-bottom: 2rem;
+            border-bottom: 1px dashed rgba(255, 255, 255, 0.15);
+            padding-bottom: 1.5rem;
+        }
+
+        .day-name {
+            font-size: 1.2rem;
+            font-weight: 500;
+            color: #c084fc;
+            letter-spacing: 1px;
+            margin-bottom: 0.75rem;
+        }
+
+        .full-date {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #f1f5f9;
+            letter-spacing: -0.02em;
+            word-break: keep-all;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        /* Time section */
+        .time-wrapper {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 2rem;
+            padding: 1.2rem;
+            margin: 1rem 0;
+        }
+
+        .clock {
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 4.5rem;
+            font-weight: 800;
+            letter-spacing: 5px;
+            color: #38bdf8;
+            text-shadow: 0 0 15px rgba(56, 189, 248, 0.3);
+            background: linear-gradient(135deg, #e0f2fe, #bae6fd);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            text-shadow: none;
+            transition: all 0.1s ease;
+        }
+
+        /* For browsers that support background-clip text, use gradient */
+        @supports (background-clip: text) {
+            .clock {
+                background: linear-gradient(135deg, #7dd3fc, #38bdf8);
+                background-clip: text;
+                -webkit-background-clip: text;
+                color: transparent;
+            }
+        }
+
+        .ampm {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #94a3b8;
+            margin-left: 0.75rem;
+            letter-spacing: normal;
+        }
+
+        .seconds-highlight {
+            font-size: 4.5rem;
+            font-weight: 800;
+            color: #facc15;
+            text-shadow: 0 0 8px rgba(250, 204, 21, 0.4);
+        }
+
+        /* Milliseconds row (extra detail) */
+        .milliseconds {
+            font-family: monospace;
+            font-size: 1rem;
+            color: #64748b;
+            margin-top: 0.5rem;
+            letter-spacing: 2px;
+        }
+
+        /* Additional info row */
+        .extra-info {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            flex-wrap: wrap;
+            margin-top: 1.8rem;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .info-chip {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 0.5rem 1.2rem;
+            border-radius: 60px;
+            font-size: 0.8rem;
+            color: #cbd5e1;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .info-chip i {
+            font-style: normal;
+            font-size: 1rem;
+        }
+
+        /* Timezone select */
+        .timezone-selector {
+            margin-top: 1.8rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.8rem;
+            flex-wrap: wrap;
+        }
+
+        .tz-label {
+            color: #94a3b8;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        select {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 40px;
+            padding: 0.5rem 1rem;
+            color: #f1f5f9;
+            font-size: 0.85rem;
+            cursor: pointer;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        select:hover {
+            background: #1e293b;
+            border-color: #38bdf8;
+        }
+
+        select:focus {
+            border-color: #38bdf8;
+            box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.3);
+        }
+
+        /* Footer */
+        .footer-note {
+            margin-top: 1.8rem;
+            font-size: 0.7rem;
+            color: #475569;
+            text-align: center;
+        }
+
+        /* Responsive design */
+        @media (max-width: 550px) {
+            .datetime-card {
+                padding: 1.5rem;
+            }
+            .clock {
+                font-size: 2.6rem;
+                letter-spacing: 2px;
+            }
+            .seconds-highlight {
+                font-size: 2.6rem;
+            }
+            .ampm {
+                font-size: 1rem;
+            }
+            .full-date {
+                font-size: 1.3rem;
+                flex-direction: column;
+                gap: 0.2rem;
+            }
+            .day-name {
+                font-size: 1rem;
+            }
+            .extra-info {
+                gap: 1rem;
+            }
+            .info-chip {
+                padding: 0.3rem 0.8rem;
+                font-size: 0.7rem;
+            }
+        }
+
+        @media (max-width: 380px) {
+            .clock {
+                font-size: 2rem;
+            }
+            .seconds-highlight {
+                font-size: 2rem;
+            }
+        }
+
+        /* blinking colon effect (optional) */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        .colon-blink {
+            animation: pulse 1s infinite;
+        }
+    </style>
+</head>
+<body>
+
+<div class="datetime-card">
+    <div class="greeting">
+        <span>✨ LIVE REAL-TIME CLOCK ✨</span>
+    </div>
+
+    <!-- Date Section -->
+    <div class="date-box">
+        <div class="day-name" id="dayName">--day--</div>
+        <div class="full-date" id="fullDate">-- -- ----</div>
+    </div>
+
+    <!-- Time Section -->
+    <div class="time-wrapper">
+        <div class="clock" id="clockDisplay">
+            <span id="hours">00</span><span id="colon1" class="colon-blink">:</span><span id="minutes">00</span><span id="colon2" class="colon-blink">:</span><span id="seconds" class="seconds-highlight">00</span>
+            <span class="ampm" id="ampm">AM</span>
+        </div>
+        <div class="milliseconds" id="milliseconds">.000</div>
+    </div>
+
+    <!-- Extra info: Week number, day of year, timezone -->
+    <div class="extra-info">
+        <div class="info-chip"><i>📅</i> Week <span id="weekNumber">--</span></div>
+        <div class="info-chip"><i>📆</i> Day <span id="dayOfYear">--</span>/365</div>
+        <div class="info-chip"><i>🌍</i> UTC Offset: <span id="utcOffset">--</span></div>
+    </div>
+
+    <!-- Timezone selector (to see date/time in different zones) -->
+    <div class="timezone-selector">
+        <span class="tz-label"><i>🕒</i> Timezone:</span>
+        <select id="timezoneSelect">
+            <option value="local">🌐 Local Time (Browser)</option>
+            <option value="America/New_York">🗽 America/New York (EST/EDT)</option>
+            <option value="Europe/London">🇬🇧 Europe/London (GMT/BST)</option>
+            <option value="Asia/Kolkata">🇮🇳 Asia/Kolkata (IST)</option>
+            <option value="Asia/Tokyo">🇯🇵 Asia/Tokyo (JST)</option>
+            <option value="Australia/Sydney">🇦🇺 Australia/Sydney (AEDT)</option>
+            <option value="Europe/Paris">🇫🇷 Europe/Paris (CET/CEST)</option>
+            <option value="America/Los_Angeles">🌴 America/Los Angeles (PT)</option>
+        </select>
+    </div>
+    
+    <div class="footer-note">
+        ⚡ Updates every second | Real-time JavaScript date & time
+    </div>
+</div>
+
+<script>
+    (function() {
+        // DOM elements
+        const dayNameElem = document.getElementById('dayName');
+        const fullDateElem = document.getElementById('fullDate');
+        const hoursElem = document.getElementById('hours');
+        const minutesElem = document.getElementById('minutes');
+        const secondsElem = document.getElementById('seconds');
+        const ampmElem = document.getElementById('ampm');
+        const millisecondsElem = document.getElementById('milliseconds');
+        const weekNumberElem = document.getElementById('weekNumber');
+        const dayOfYearElem = document.getElementById('dayOfYear');
+        const utcOffsetElem = document.getElementById('utcOffset');
+        const timezoneSelect = document.getElementById('timezoneSelect');
+
+        // Helper: get week number (ISO 8601)
+        function getWeekNumber(date) {
+            const tempDate = new Date(date.valueOf());
+            const dayNum = (date.getDay() + 6) % 7; // make Monday first day
+            tempDate.setDate(tempDate.getDate() - dayNum + 3);
+            const firstThursday = tempDate.valueOf();
+            tempDate.setMonth(0, 1);
+            if (tempDate.getDay() !== 4) {
+                tempDate.setMonth(0, 1 + ((4 - tempDate.getDay()) + 7) % 7);
+            }
+            return 1 + Math.ceil((firstThursday - tempDate) / 604800000);
+        }
+
+        // Helper: get day of year (1-366)
+        function getDayOfYear(date) {
+            const start = new Date(date.getFullYear(), 0, 0);
+            const diff = date - start;
+            const oneDay = 86400000;
+            return Math.floor(diff / oneDay);
+        }
+
+        // Format number with leading zero
+        function formatTwoDigits(num) {
+            return num.toString().padStart(2, '0');
+        }
+
+        function formatThreeDigits(num) {
+            return num.toString().padStart(3, '0');
+        }
+
+        // Main render function: gets current date/time based on selected timezone
+        function updateRealTime() {
+            const selectedTz = timezoneSelect.value;
+            let now;
+
+            if (selectedTz === 'local') {
+                now = new Date();
+            } else {
+                // Use Intl.DateTimeFormat to get components in the specified timezone
+                try {
+                    // Get the current timestamp and convert using Intl
+                    const localDate = new Date();
+                    const formatterOpts = {
+                        timeZone: selectedTz,
+                        year: 'numeric',
+                        month: 'numeric',
+                        day: 'numeric',
+                        hour: 'numeric',
+                        minute: 'numeric',
+                        second: 'numeric',
+                        hour12: false,
+                    };
+                    // For milliseconds we need separate handling
+                    const parts = new Intl.DateTimeFormat('en-US', {
+                        timeZone: selectedTz,
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        hour12: false
+                    }).formatToParts(localDate);
+                    
+                    let year, month, day, hour, minute, second;
+                    for (const part of parts) {
+                        switch (part.type) {
+                            case 'year': year = parseInt(part.value, 10); break;
+                            case 'month': month = parseInt(part.value, 10); break;
+                            case 'day': day = parseInt(part.value, 10); break;
+                            case 'hour': hour = parseInt(part.value, 10); break;
+                            case 'minute': minute = parseInt(part.value, 10); break;
+                            case 'second': second = parseInt(part.value, 10); break;
+                        }
+                    }
+                    // milliseconds from local date (we can't get ms from Intl directly, but we preserve original ms)
+                    // For better accuracy, we keep milliseconds from the local Date object, but when timezone changes, milliseconds offset is minimal.
+                    const milliseconds = localDate.getMilliseconds();
+                    // Create a date object using UTC to keep the correct components but we'll use these numbers
+                    // However for offset display and week/day calculations we must reconstruct a date relative to that timezone.
+                    // We'll build a date string to create a date object that represents same moment
+                    const dateInTz = new Date(localDate.toLocaleString('en-US', { timeZone: selectedTz }));
+                    // But above approach ensures the actual date object is correct moment
+                    now = dateInTz;
+                    // However for hour/minute we already extracted, we can trust extracted values.
+                    // Use extracted for display to avoid rounding issues.
+                    const displayHour = hour % 12 || 12;
+                    const ampmVal = hour >= 12 ? 'PM' : 'AM';
+                    // Update DOM directly using the extracted components
+                    hoursElem.textContent = formatTwoDigits(displayHour);
+                    minutesElem.textContent = formatTwoDigits(minute);
+                    secondsElem.textContent = formatTwoDigits(second);
+                    ampmElem.textContent = ampmVal;
+                    millisecondsElem.textContent = `.${formatThreeDigits(milliseconds)}`;
+                    
+                    // Date details from the constructed 'now' (correct moment)
+                    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                    dayNameElem.textContent = dayNames[dateInTz.getDay()];
+                    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+                    fullDateElem.textContent = `${monthNames[dateInTz.getMonth()]} ${dateInTz.getDate()}, ${dateInTz.getFullYear()}`;
+                    
+                    // Extra info based on dateInTz
+                    weekNumberElem.textContent = getWeekNumber(dateInTz);
+                    dayOfYearElem.textContent = getDayOfYear(dateInTz);
+                    
+                    // UTC offset formatting
+                    const offsetMinutes = -dateInTz.getTimezoneOffset();
+                    const sign = offsetMinutes >= 0 ? '+' : '-';
+                    const absOffset = Math.abs(offsetMinutes);
+                    const offsetHours = Math.floor(absOffset / 60);
+                    const offsetMins = absOffset % 60;
+                    utcOffsetElem.textContent = `UTC${sign}${formatTwoDigits(offsetHours)}:${formatTwoDigits(offsetMins)}`;
+                    
+                    return;
+                } catch (e) {
+                    console.warn("Timezone fallback to local", e);
+                    now = new Date();
+                }
+            }
+            
+            // Default local rendering (if fallback or local selected)
+            if (!now) now = new Date();
+            
+            // Extract time components
+            let hours = now.getHours();
+            const minutes = now.getMinutes();
+            const seconds = now.getSeconds();
+            const milliseconds = now.getMilliseconds();
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            const displayHours = hours % 12 || 12;
+            
+            // Update time display
+            hoursElem.textContent = formatTwoDigits(displayHours);
+            minutesElem.textContent = formatTwoDigits(minutes);
+            secondsElem.textContent = formatTwoDigits(seconds);
+            ampmElem.textContent = ampm;
+            millisecondsElem.textContent = `.${formatThreeDigits(milliseconds)}`;
+            
+            // Date details
+            const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+            dayNameElem.textContent = dayNames[now.getDay()];
+            fullDateElem.textContent = `${monthNames[now.getMonth()]} ${now.getDate()}, ${now.getFullYear()}`;
+            
+            // Week number & day of year
+            weekNumberElem.textContent = getWeekNumber(now);
+            dayOfYearElem.textContent = getDayOfYear(now);
+            
+            // UTC Offset
+            const offsetMinutes = -now.getTimezoneOffset();
+            const sign = offsetMinutes >= 0 ? '+' : '-';
+            const absOffset = Math.abs(offsetMinutes);
+            const offsetHours = Math.floor(absOffset / 60);
+            const offsetMins = absOffset % 60;
+            utcOffsetElem.textContent = `UTC${sign}${formatTwoDigits(offsetHours)}:${formatTwoDigits(offsetMins)}`;
+        }
+        
+        // Synchronous update loop using requestAnimationFrame + setInterval fallback for precision
+        let animationId = null;
+        let lastTimestamp = 0;
+        
+        function tick() {
+            updateRealTime();
+            // Schedule next update at next full second boundary or smoother (every 50ms for milliseconds)
+            // But we want smooth ms update, we update frequently
+            animationId = requestAnimationFrame(() => {
+                setTimeout(() => tick(), 50);
+            });
+        }
+        
+        // Use setInterval as backup for compatibility but requestAnimationFrame is smoother
+        // However for clock stability, setInterval 50ms is fine
+        let intervalId = setInterval(() => {
+            updateRealTime();
+        }, 50);
+        
+        // Also initial call
+        updateRealTime();
+        
+        // Event listener: when timezone changes, update immediately and keep interval
+        timezoneSelect.addEventListener('change', () => {
+            updateRealTime(); // immediate refresh
+        });
+        
+        // Optional: Cleanup on page unload (good practice)
+        window.addEventListener('beforeunload', () => {
+            if (intervalId) clearInterval(intervalId);
+            if (animationId) cancelAnimationFrame(animationId);
+        });
+        
+        // For extra precision, also handle visibility change to reduce CPU when hidden? optional
+        function handleVisibilityChange() {
+            if (document.hidden) {
+                // Use lower frequency when hidden? Not needed but we keep running
+            } else {
+                updateRealTime(); // force update when becomes visible
+            }
+        }
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        
+        // Additional style: add a tiny interactive effect to highlight colon every second
+        // Not necessary but gives dynamic feel. Already done with CSS pulse.
+    })();
+</script>
+</body>
+</html>
